@@ -146,6 +146,10 @@ public class RetrofitManager {
             retrofitBuilder = retrofitBuilder.client(client);
         }
 
+        if (pubnub.getConfiguration().getRetrofitExecutor() != null) {
+            retrofitBuilder = retrofitBuilder.callbackExecutor(pubnub.getConfiguration().getRetrofitExecutor());
+        }
+
         return retrofitBuilder.build();
     }
 

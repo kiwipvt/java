@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 public abstract class Endpoint<Input, Output> {
 
@@ -120,7 +121,7 @@ public abstract class Endpoint<Input, Output> {
             this.validateParams();
             call = doWork(createBaseParams());
         } catch (PubNubException pubnubException) {
-            callback.onResponse(null, createStatusResponse(PNStatusCategory.PNBadRequestCategory, null, pubnubException, null, null));
+            callbackOnResponse(callback, null, PNStatusCategory.PNBadRequestCategory, null, pubnubException, null, null);
             return;
         }
 
@@ -186,7 +187,7 @@ public abstract class Endpoint<Input, Output> {
                         pnStatusCategory = PNStatusCategory.PNBadRequestCategory;
                     }
 
-                    callback.onResponse(null, createStatusResponse(pnStatusCategory, response, ex, affectedChannels, affectedChannelGroups));
+                    callbackOnResponse(callback, null, pnStatusCategory, response, ex, affectedChannels, affectedChannelGroups);
                     return;
                 }
                 storeRequestLatency(response, getOperationType());
@@ -194,11 +195,12 @@ public abstract class Endpoint<Input, Output> {
                 try {
                     callbackResponse = createResponse(response);
                 } catch (PubNubException pubnubException) {
-                    callback.onResponse(null, createStatusResponse(PNStatusCategory.PNMalformedResponseCategory, response, pubnubException, null, null));
+                    callbackOnResponse(callback, null, PNStatusCategory.PNMalformedResponseCategory, response, pubnubException, null, null);
                     return;
                 }
 
-                callback.onResponse(callbackResponse, createStatusResponse(PNStatusCategory.PNAcknowledgmentCategory, response, null, null, null));
+                callbackOnResponse(callback, callbackResponse, PNStatusCategory.PNAcknowledgmentCategory, response, null, null, null);
+
             }
 
             @Override
@@ -226,10 +228,25 @@ public abstract class Endpoint<Input, Output> {
                     pubnubException.pubnubError(PubNubErrorBuilder.PNERROBJ_HTTP_ERROR);
                 }
 
-                callback.onResponse(null, createStatusResponse(pnStatusCategory, null, pubnubException.build(), null, null));
-
+                callbackOnResponse(callback, null, pnStatusCategory, null, pubnubException.build(), null, null);
             }
         });
+    }
+
+    private void callbackOnResponse(final PNCallback<Output> callback, final Output result, final PNStatusCategory category, final Response<Input> response, final Exception throwable, final ArrayList<String> errorChannels, final ArrayList<String> errorChannelGroups) {
+        Executor responseCallBackExecutor = pubnub.getConfiguration().getResponseCallbackExecutor();
+        boolean isPubnubInternalCallback = !callback.getClass().getPackage().getName().startsWith("com.pubnub.api");
+        if (responseCallBackExecutor != null && !isPubnubInternalCallback) {
+            responseCallBackExecutor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onResponse(result, createStatusResponse(category, response, throwable, errorChannels, errorChannelGroups));
+                }
+            });
+        }
+        else {
+            callback.onResponse(result, createStatusResponse(category, response, throwable, errorChannels, errorChannelGroups));
+        }
     }
 
     public void retry() {

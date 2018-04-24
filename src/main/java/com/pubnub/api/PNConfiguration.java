@@ -19,6 +19,7 @@ import javax.net.ssl.X509ExtendedTrustManager;
 import java.net.Proxy;
 import java.net.ProxySelector;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 
 @Getter
 @Setter
@@ -177,6 +178,12 @@ public class PNConfiguration {
     private boolean dedupOnSubscribe;
     @Setter
     private Integer maximumMessagesCacheSize;
+
+    @Setter
+    private Executor retrofitExecutor;
+
+    @Setter
+    private Executor responseCallbackExecutor;
 
     /**
      * Initialize the PNConfiguration with default values
