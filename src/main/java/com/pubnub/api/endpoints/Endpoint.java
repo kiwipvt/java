@@ -235,7 +235,7 @@ public abstract class Endpoint<Input, Output> {
 
     private void callbackOnResponse(final PNCallback<Output> callback, final Output result, final PNStatusCategory category, final Response<Input> response, final Exception throwable, final ArrayList<String> errorChannels, final ArrayList<String> errorChannelGroups) {
         Executor responseCallBackExecutor = pubnub.getConfiguration().getResponseCallbackExecutor();
-        boolean isPubnubInternalCallback = !callback.getClass().getPackage().getName().startsWith("com.pubnub.api");
+        boolean isPubnubInternalCallback = callback.getClass().getPackage().getName().startsWith("com.pubnub.api");
         if (responseCallBackExecutor != null && !isPubnubInternalCallback) {
             responseCallBackExecutor.execute(new Runnable() {
                 @Override
