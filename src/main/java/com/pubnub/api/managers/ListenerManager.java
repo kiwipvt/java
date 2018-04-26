@@ -8,6 +8,7 @@ import com.pubnub.api.models.consumer.pubsub.PNPresenceEventResult;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 public class ListenerManager {
 
@@ -44,22 +45,61 @@ public class ListenerManager {
      *
      * @param status PNStatus which will be broadcast to listeners.
      */
-    public void announce(PNStatus status) {
-        for (SubscribeCallback subscribeCallback : getListeners()) {
-            subscribeCallback.status(this.pubnub, status);
+    public void announce(final PNStatus status) {
+        for (final SubscribeCallback subscribeCallback : getListeners()) {
+            Executor executorToRunOn = getExecutorToRunOn(subscribeCallback);
+            if (executorToRunOn != null) {
+                executorToRunOn.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        subscribeCallback.status(pubnub, status);
+                    }
+                });
+            }
+            else {
+                subscribeCallback.status(this.pubnub, status);
+            }
         }
     }
 
-    public void announce(PNMessageResult message) {
-        for (SubscribeCallback subscribeCallback : getListeners()) {
-            subscribeCallback.message(this.pubnub, message);
+    public void announce(final PNMessageResult message) {
+        for (final SubscribeCallback subscribeCallback : getListeners()) {
+            Executor executorToRunOn = getExecutorToRunOn(subscribeCallback);
+            if (executorToRunOn != null) {
+                executorToRunOn.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        subscribeCallback.message(pubnub, message);
+                    }
+                });
+            }
+            else {
+                subscribeCallback.message(this.pubnub, message);
+            }
         }
     }
 
-    public void announce(PNPresenceEventResult presence) {
-        for (SubscribeCallback subscribeCallback : getListeners()) {
-            subscribeCallback.presence(this.pubnub, presence);
+    public void announce(final PNPresenceEventResult presence) {
+        for (final SubscribeCallback subscribeCallback : getListeners()) {
+            Executor executorToRunOn = getExecutorToRunOn(subscribeCallback);
+            if (executorToRunOn != null) {
+                executorToRunOn.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        subscribeCallback.presence(pubnub, presence);
+                    }
+                });
+            }
+            else {
+                subscribeCallback.presence(this.pubnub, presence);
+            }
         }
+    }
+
+    private Executor getExecutorToRunOn(SubscribeCallback subscribeCallback) {
+        Executor responseCallBackExecutor = pubnub.getConfiguration().getResponseCallbackExecutor();
+        boolean isPubnubInternalCallback = subscribeCallback.getClass().getPackage().getName().startsWith("com.pubnub.api");
+        return (responseCallBackExecutor != null && !isPubnubInternalCallback) ? responseCallBackExecutor : null;
     }
 
 }
